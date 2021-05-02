@@ -1,98 +1,113 @@
-#
-# In the ARGoS window, you can move the camera with the following commands:
-#
-# - Translation: W A S D Q E keys, right-click + drag
-# - Rotation: left-click + drag
-#
-# Selection: shift-click on the robot
-# Remove selection: shift-click elsewhere
-#
-# Bug: selection is finnicky in the top-down view (Camera 1).
-# Solution: switch to another camera and it'll work.
-#
+# Reinforce parameter
+# Defined in slide 11
+# Chosen as in slide 17
+XSI = 10.0
+# Forget parameter
+# Defined in slide 11
+# Chosen as in slide 17
+PHI = 1.0
+# Spontaneous switching
+# Defined in slide 15
+# Chosen as in slide 17
+P = 0.01
+# Number of tasks: if you change this, you must also change the corresponding
+# parameter in the .argos file, line 98!
+TASKS = 2
+
+PI = 3.14159
+
+map = { .0 = { .1 = { .124.84 = 0.03}, .2 = { .156.87 = -0.74}, .3 = { .103.21 = -1.56}}, .1 = { .0 = { .124.84 = -3.12}, .2 = { .109.16 = -1.65}, .3 = { .162.79 = -2.43}}, .2 = { .0 = { .156.87 = 2.40}, .1 = { .109.16 = 1.49}, .3 = { .114.43 = 3.12}}, .3 = { .0 = { .103.21 = 1.59}, .1 = { .162.79 = 0.71}, .2 = { .114.43 = -0.02}}}
 
 #
-# Compiling and running the code
+# Executed once at init time
 #
-# - In the ARGoS window: Pause the simulation (if it's not paused already)
-# - In the editor: do what you need, save, press the "Execute" button
-# - In the ARGoS window: Press the "Play", "Step", or "Fast Forward" buttons
-#
-
-#
-# This editor sucks.
-#
-# I know.
-#
-# But when it's open, it detects whether the open files have been modified elsewhere.
-# So open this editor and then open the file you wanna edit in your favorite editor.
-# When you save in your editor, the changes will be reflected here. Press Execute to compile and run.
-# If you want syntax highlighting, JavaScript is pretty similar to Buzz.
-#
-
-points = { .0 = { .1 = { .84.10 = -2.70}, .2 = { .140.00 = -1.09}}, .1 = { .0 = { .84.10 = 0.44}, .2 = { .166.21 = -0.56}}, .2 = { .0 = { .140.00 = 2.05}, .1 = { .166.21 = 2.58}}}
-
-
 function init() {
-	# Draw the trajectory of the robot in green
-	# See: https://the.swarming.buzz/wiki/doku.php?id=buzz_argos
-	debug.trajectory.enable(100, 0, 255, 0)
+  reset()
+	neighbor_target_vectors = {}
+
+	foreach(map, function(point, list){
+		avg_ndistance = 0.0
+		avg_nangle = 0.0 
+		avg_nangle_sin = 0.0
+		avg_nangle_cos = 0.0
+		index = 0.0
+		foreach(list, function(neighbor, innerTable) {
+			index = index + 1.0
+			foreach(innerTable, function(distance, angle){
+			avg_ndistance = avg_ndistance + distance
+			avg_nangle_sin = avg_nangle_sin + math.sin(angle)
+			avg_nangle_cos = avg_nangle_cos + math.cos(angle)
+			})
+		})
+		avg_ndistance = avg_ndistance/index
+		avg_nangle_sin = avg_nangle_sin/index
+		avg_nangle_cos = avg_nangle_cos/index
+
+		avg_nangle = math.atan(avg_nangle_sin, avg_nangle_cos)
+		neighbor_target_vectors[point] = {.avg_ndistance = avg_nangle}
+	}) 
+
 }
 
-function normalizeFunction(angle){
-	pi = 3.14159
-	while(angle > pi and angle > 0.0){angle = angle - (2*pi)}
-	while(angle < pi and angle < 0.0){angle = angle + (2*pi)}
-	return angle
-}
-
+#
+# Executed for each step
+#
 function step() {
-	# Sum the proximity sensors, considering each as a vector
-	# The result is a vector that points to the "densest" obstacle direction
-  obst = reduce(proximity,
-		function(idx,sensor,sofar) {
-			return {
-				.x = sofar.x + sensor.value * math.cos(sensor.angle),
-				.y = sofar.y + sensor.value * math.sin(sensor.angle)
-			}}, { .x = 0.0, .y = 0.0 })
-	if(neighbors.count() > 0) {
-		obst.x = obst.x / neighbors.count()
-		obst.y = obst.y / neighbors.count()
-	}
+
+	avg_distance = 0.0
+	avg_anlge = 0.0
+	avg_angle_sin = 0.0
+	avg_angle_cos = 0.0
+	i = 0.0
+	neighbors.foreach(
+  	function(rid, data) {
+			 i = i + 1
+       avg_distance = avg_distance + data.distance
+			 avg_angle_sin = avg_angle_sin + math.sin(data.azimuth)
+			 avg_angle_cos = avg_angle_cos + math.cos(data.azimuth)
+ 		})
+	avg_distance = avg_distance/i
+	avg_angle = math.atan(avg_angle_sin/i, vg_angle_cos/i)
+
+current_vector = {.avg_distance = avg_angle}
 
 
-neighbors.foreach(
-  function(rid, data) {
-		angle = normalizeFunction(data.azimuth) - normalizeFunction(pose.orientation.yaw)
 
-    log("current:" , id, "  neighbor_robot:", rid, ": ",
-        "distance  = ", data.distance, ", ",
-        "azimuth   = ", angle) })
-
-
-	# Draw the vector
-	# See: https://the.swarming.buzz/wiki/doku.php?id=buzz_argos
-	debug.rays.add(
-		255, 0, 0,
-		0.0, 0.0, 0.1,
-		obst.x, obst.y, 0.1)
-  # Move straight
-	# See: https://the.swarming.buzz/wiki/doku.php?id=buzz_kh4
-  #  set_wheels(left, right) # direct wheel speed control (cm/s)
-  #  gotop(linear, angular)  # velocity vector in polar coordinates (cm/s, rad/s)
-	if(obst.x != 0 or obst.y != 0){
-		set_wheels(2.0, -2.0) # direct wheel speed control (cm/s)
-		
-		if(obst.x < 0 and obst.y < 0 and obst.x < 10*obst.y){
-			gotoc(5.0, 0.0)
-		}
-	}else{
-		gotoc(10.0, 0.0)      # velocity vector in cartesian coordinates (cm/s)
-	}
+	#foreach(confidence, function(key, value) {
+				#avg_d = 0.0
+				#avg_theta = 0.0
+				#foreach(map[key],function(neighbor, table) {
+				#	foreach(table,function(distance, angle) {
+				#		log(distance, '->', angle)
+				#		avg_d = avg_d + (distance*value)
+				#		avg_theta = avg_theta + (angle*value)
+				#	})	
+				#})
+    #})
 }
 
+#
+# Executed once upon resetting
+#
 function reset() {
+	math.rng.setseed(id)
+	task = 0
+	threshold = {}
+	threshold[0] = 500.0
+	threshold[1] = 500.0
+  # Pick a default task
+  # Pick initial thresholds for the tasks
+	confidence = {}
+  confidence[0] = 0.75
+	confidence[1] = 0.10
+	confidence[2] = 0.12
+	confidence[3] = 0.03
 }
 
+#
+# Executed once upon closing ARGoS
+#
 function destroy() {
+  # Nothing to do
 }
+
