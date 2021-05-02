@@ -1,0 +1,98 @@
+#
+# In the ARGoS window, you can move the camera with the following commands:
+#
+# - Translation: W A S D Q E keys, right-click + drag
+# - Rotation: left-click + drag
+#
+# Selection: shift-click on the robot
+# Remove selection: shift-click elsewhere
+#
+# Bug: selection is finnicky in the top-down view (Camera 1).
+# Solution: switch to another camera and it'll work.
+#
+
+#
+# Compiling and running the code
+#
+# - In the ARGoS window: Pause the simulation (if it's not paused already)
+# - In the editor: do what you need, save, press the "Execute" button
+# - In the ARGoS window: Press the "Play", "Step", or "Fast Forward" buttons
+#
+
+#
+# This editor sucks.
+#
+# I know.
+#
+# But when it's open, it detects whether the open files have been modified elsewhere.
+# So open this editor and then open the file you wanna edit in your favorite editor.
+# When you save in your editor, the changes will be reflected here. Press Execute to compile and run.
+# If you want syntax highlighting, JavaScript is pretty similar to Buzz.
+#
+
+points = { .0 = { .1 = { .84.10 = -2.70}, .2 = { .140.00 = -1.09}}, .1 = { .0 = { .84.10 = 0.44}, .2 = { .166.21 = -0.56}}, .2 = { .0 = { .140.00 = 2.05}, .1 = { .166.21 = 2.58}}}
+
+
+function init() {
+	# Draw the trajectory of the robot in green
+	# See: https://the.swarming.buzz/wiki/doku.php?id=buzz_argos
+	debug.trajectory.enable(100, 0, 255, 0)
+}
+
+function normalizeFunction(angle){
+	pi = 3.14159
+	while(angle > pi and angle > 0.0){angle = angle - (2*pi)}
+	while(angle < pi and angle < 0.0){angle = angle + (2*pi)}
+	return angle
+}
+
+function step() {
+	# Sum the proximity sensors, considering each as a vector
+	# The result is a vector that points to the "densest" obstacle direction
+  obst = reduce(proximity,
+		function(idx,sensor,sofar) {
+			return {
+				.x = sofar.x + sensor.value * math.cos(sensor.angle),
+				.y = sofar.y + sensor.value * math.sin(sensor.angle)
+			}}, { .x = 0.0, .y = 0.0 })
+	if(neighbors.count() > 0) {
+		obst.x = obst.x / neighbors.count()
+		obst.y = obst.y / neighbors.count()
+	}
+
+
+neighbors.foreach(
+  function(rid, data) {
+		angle = normalizeFunction(data.azimuth) - normalizeFunction(pose.orientation.yaw)
+
+    log("current:" , id, "  neighbor_robot:", rid, ": ",
+        "distance  = ", data.distance, ", ",
+        "azimuth   = ", angle) })
+
+
+	# Draw the vector
+	# See: https://the.swarming.buzz/wiki/doku.php?id=buzz_argos
+	debug.rays.add(
+		255, 0, 0,
+		0.0, 0.0, 0.1,
+		obst.x, obst.y, 0.1)
+  # Move straight
+	# See: https://the.swarming.buzz/wiki/doku.php?id=buzz_kh4
+  #  set_wheels(left, right) # direct wheel speed control (cm/s)
+  #  gotop(linear, angular)  # velocity vector in polar coordinates (cm/s, rad/s)
+	if(obst.x != 0 or obst.y != 0){
+		set_wheels(2.0, -2.0) # direct wheel speed control (cm/s)
+		
+		if(obst.x < 0 and obst.y < 0 and obst.x < 10*obst.y){
+			gotoc(5.0, 0.0)
+		}
+	}else{
+		gotoc(10.0, 0.0)      # velocity vector in cartesian coordinates (cm/s)
+	}
+}
+
+function reset() {
+}
+
+function destroy() {
+}
