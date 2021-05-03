@@ -67,7 +67,7 @@ function step() {
 			 avg_angle_cos = avg_angle_cos + math.cos(data.azimuth)
  		})
 	avg_distance = avg_distance/i
-	avg_angle = math.atan(avg_angle_sin/i, vg_angle_cos/i)
+	avg_angle = math.atan(avg_angle_sin/i, avg_angle_cos/i)
 
 current_vector = {.avg_distance = avg_angle}
 
@@ -84,6 +84,7 @@ current_vector = {.avg_distance = avg_angle}
 				#	})	
 				#})
     #})
+		debug.rays.add(255,0,0,0.0,0.0,0.1, avg_distance*math.cos(avg_angle)/100, avg_distance*math.sin(avg_angle)/100, 0.1 )
 }
 
 #
