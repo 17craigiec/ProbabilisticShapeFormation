@@ -92,23 +92,20 @@ debug.rays.add(255,0,0,0.0,0.0,0.1, avg_distance*math.cos(avg_angle)/100, avg_di
 		total_corection_distance = 		total_corection_distance + (avg_distance - innnerTable.d)
 		correction_vectors[rid] = {.a = (avg_angle-innnerTable.a), .d = (avg_distance - innnerTable.d)}})
 
-	probability = {}
+	close_est = {}
+	close_est.a = 0
+	close_est.d = 9999
+	close_est.n = 0
 	foreach(correction_vectors,
   	function(id, table) {
-		probability[id] = (table.d/total_corection_distance)
+		if(close_est.d > table.d){
+			close_est.a = table.a
+			close_est.d = table.d
+			close_est.n = id
+		}
 	})
 
-V_final = {.x = 0.0, .y = 0.0}
-
-	foreach(probability,
-  	function(id, prob) {
-		V_final.x = V_final.x + (1.0/prob)*math.cos(correction_vectors[id].a)
-		V_final.y = V_final.y +(1.0/prob)*math.sin(correction_vectors[id].a)
-	})
-printx = V_final.x * math.cos(pose.orientation.yaw) -math.sin(pose.orientation.yaw)*V_final.y
-printy = V_final.y * math.cos(pose.orientation.yaw) +math.sin(pose.orientation.yaw)*V_final.x
-	
-	debug.rays.add(0,255,0,0.0,0.0,0.1, 5*printx	, 5*printy, 0.1 )
+	debug.rays.add(0,255,0,0.0,0.0,0.1, close_est.d*cos(close_est.a), close_est.d*sin(close_est.a), 0.1 )
 
 }
 
