@@ -90,7 +90,7 @@ function step() {
 	debug.rays.add(255,0,0,0.0,0.0,0.1, avg_distance*math.cos(avg_angle)/100, avg_distance*math.sin(avg_angle)/100, 0.1 )
 
 
-	avg_angle = avg_angle + pose.orientation.yaw
+	avg_angle = avg_angle - pose.orientation.yaw
 	current_vector = {.avg_distance = avg_angle}
 
 	correction_vectors = {}	
@@ -100,16 +100,20 @@ function step() {
 		})
 
 	close_est = {}
-	close_est.a = 0
-	close_est.d = 9999
-	close_est.n = 0
+	close_est.mag = 9999
+	close_est.x = 0
+	close_est.y = 0
+	close_est.id = -1
 	foreach(correction_vectors,
   	function(id, table) {
-		if(close_est.d > table.d){
-			close_est.a = table.a
-			close_est.d = table.d
-			close_est.n = id
+		if(close_est.mag > table.mag){
+			close_est.mag = table.mag
+			close_est.x = table.x
+			close_est.y = table.y
+			close_est.id = id
 		}
+
+		move(close_est.x,close_est.y)
 	})
   
 	#debug.rays.add(0,255,0, 0.0,0.0,0.1, close_est.d*cos(close_est.a), close_est.d*sin(close_est.a), 0.1 )
@@ -142,7 +146,7 @@ function move(x, y){
 	offset = pose.orientation.yaw
 	x2 = math.cos(offset)*x - math.sin(offset)*y
 	y2 = math.sin(offset)*x + math.cos(offset)*y
-	gotoc(x2,y2)
+	gotoc(x2*100,y2*100)
 }
 
 
