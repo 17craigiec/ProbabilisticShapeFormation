@@ -13,6 +13,13 @@ function subVectors(theta_0, d_0, theta_1, d_1) {
 	return vect
 }
 
+function drawGlobalLine(r,g,b, x,y) {
+	cur_heading = pose.orientation.yaw
+	x_print = x*math.cos(-cur_heading) - y*math.sin(-cur_heading)
+	y_print = x*math.sin(-cur_heading) + y*math.cos(-cur_heading)
+	debug.rays.add(r,g,b,0.0,0.0,0.1, x_print, y_print, 0.1 )
+}
+
 #
 # Executed once at init time
 #
@@ -48,6 +55,7 @@ function init() {
 # Executed for each step
 #
 function step() {
+	cur_heading = pose.orientation.yaw
 	obst = reduce(proximity,
 		function(idx,sensor,sofar) {
 			return {
@@ -57,7 +65,7 @@ function step() {
 
 	if (neighbors.count() > 0){
 	avg_distance = 0.0
-	avg_anlge = 0.0
+	avg_angle = 0.0
 	avg_angle_sin = 0.0
 	avg_angle_cos = 0.0
 	i = 0.0
@@ -70,37 +78,40 @@ function step() {
  		})
 	avg_distance = avg_distance/i
 	avg_angle = math.atan(avg_angle_sin/i, avg_angle_cos/i)
-	
-	debug.rays.add(255,0,0,0.0,0.0,0.1, avg_distance*math.cos(avg_angle)/100, avg_distance*math.sin(avg_angle)/100, 0.1 )
+	tmp_cur_x = avg_distance*math.cos(avg_angle)
+	tmp_cur_y = avg_distance*math.sin(avg_angle)
 
+	cur_avg_vector = {}
+	cur_avg_vector.x = tmp_cur_x*math.cos(cur_heading) - tmp_cur_y*math.sin(cur_heading)
+	cur_avg_vector.y = tmp_cur_x*math.sin(cur_heading) + tmp_cur_y*math.cos(cur_heading)
+	cur_avg_vector.mag = ((cur_avg_vector.x)^2+(cur_avg_vector.y)^2)^0.5
+	cur_avg_vector.theta = math.atan(cur_avg_vector.y,cur_avg_vector.x)
 
-	avg_angle = avg_angle - pose.orientation.yaw
-	current_vector = {.avg_distance = avg_angle}
+	debug.print(cur_heading*180/PI)
+	drawGlobalLine(205,50,0, cur_avg_vector.x/100,cur_avg_vector.y/100)
 
 	correction_vectors = {}	
 	foreach(map_target_vectors,
   	function(rid, innerTable) {
-			correction_vectors[rid] = subVectors(avg_angle, avg_distance, innerTable.a, innerTable.d)
+			correction_vectors[rid] = subVectors(cur_avg_vector.theta, cur_avg_vector.mag, innerTable.a, innerTable.d)
 		})
-	#close_est = {}
-	#close_est.mag = 9999
-	#close_est.x = 0
-	#close_est.y = 0
-	#close_est.id = -1
-	#foreach(correction_vectors,
-  	#function(id, table) {
-		#if(close_est.mag > table.mag){
-			#close_est.mag = table.mag
-			#close_est.x = table.x
-			#close_est.y = table.y
-			#close_est.id = id
-		#}
+	close_est = {}
+	close_est.mag = 9999
+	close_est.x = 0
+	close_est.y = 0
+	close_est.id = -1
+	foreach(correction_vectors,
+  	function(id, table) {
+		if(close_est.mag > table.mag){
+			close_est.mag = table.mag
+			close_est.x = table.x
+			close_est.y = table.y
+			close_est.id = id
+		}
+	})
 
-		
-	#})
-	val = correction_vectors[id]
-  move(0, -5)
-	#debug.rays.add(0,255,0, 0.0,0.0,0.1, close_est.d*cos(close_est.a), close_est.d*sin(close_est.a), 0.1 )
+	#move(close_est.x,close_est.y)  
+		drawGlobalLine(0,205,50, close_est.x/100,close_est.y/100)
 	}
 	else
 	{
