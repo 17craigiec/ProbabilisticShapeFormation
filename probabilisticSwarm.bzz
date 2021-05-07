@@ -82,24 +82,24 @@ function step() {
   	function(rid, innerTable) {
 			correction_vectors[rid] = subVectors(avg_angle, avg_distance, innerTable.a, innerTable.d)
 		})
+	#close_est = {}
+	#close_est.mag = 9999
+	#close_est.x = 0
+	#close_est.y = 0
+	#close_est.id = -1
+	#foreach(correction_vectors,
+  	#function(id, table) {
+		#if(close_est.mag > table.mag){
+			#close_est.mag = table.mag
+			#close_est.x = table.x
+			#close_est.y = table.y
+			#close_est.id = id
+		#}
 
-	close_est = {}
-	close_est.mag = 9999
-	close_est.x = 0
-	close_est.y = 0
-	close_est.id = -1
-	foreach(correction_vectors,
-  	function(id, table) {
-		if(close_est.mag > table.mag){
-			close_est.mag = table.mag
-			close_est.x = table.x
-			close_est.y = table.y
-			close_est.id = id
-		}
-
-		move(close_est.x,close_est.y)
-	})
-  
+		
+	#})
+	val = correction_vectors[id]
+  move(0, -5)
 	#debug.rays.add(0,255,0, 0.0,0.0,0.1, close_est.d*cos(close_est.a), close_est.d*sin(close_est.a), 0.1 )
 	}
 	else
@@ -127,10 +127,20 @@ function diffusing(x, y)
 }
 
 function move(x, y){
-	offset = pose.orientation.yaw
-	x2 = math.cos(offset)*x - math.sin(offset)*y
-	y2 = math.sin(offset)*x + math.cos(offset)*y
-	gotoc(x2*100,y2*100)
+	desired_angle = math.atan(y, x)
+	error = pose.orientation.yaw - desired_angle
+	error_threshold = 0.04
+	if(math.abs(error) < error_threshold)
+	{
+		set_wheels(10.0,10.0)
+	}
+	else if (error > 0){
+		set_wheels(5.0,-5.0)
+	}
+	else{
+		set_wheels(-5.0,5.0)
+	} 
+	debug.print("Err:", error, "   da:", desired_angle)
 }
 
 
@@ -138,13 +148,6 @@ function move(x, y){
 # Executed once upon resetting
 #
 function reset() {
-	math.rng.setseed(id)
-	task = 0
-	threshold = {}
-	threshold[0] = 500.0
-	threshold[1] = 500.0
-  # Pick a default task
-  # Pick initial thresholds for the tasks
 	confidence = {}
   confidence[0] = 0.75
 	confidence[1] = 0.10
