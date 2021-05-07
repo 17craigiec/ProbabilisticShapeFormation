@@ -18,6 +18,17 @@ PI = 3.14159
 
 map = { .0 = { .1 = { .124.84 = 0.03}, .2 = { .156.87 = -0.74}, .3 = { .103.21 = -1.56}}, .1 = { .0 = { .124.84 = -3.12}, .2 = { .109.16 = -1.65}, .3 = { .162.79 = -2.43}}, .2 = { .0 = { .156.87 = 2.40}, .1 = { .109.16 = 1.49}, .3 = { .114.43 = 3.12}}, .3 = { .0 = { .103.21 = 1.59}, .1 = { .162.79 = 0.71}, .2 = { .114.43 = -0.02}}}
 
+# Subtracts Vector 1 from Vector 0
+function subVectors(theta_0, d_0, theta_1, d_1) {
+	x_sub = d_0*math.cos(theta_0) - d_1*math.cos(theta_1)
+	y_sub = d_0*math.sin(theta_0) - d_1*math.sin(theta_1)
+	vect = {}
+	vect.x = x_sub
+	vect.y = y_sub
+	vect.mag = ((x_sub^2) + (y_sub^2))^0.5	
+	return vect
+}
+
 #
 # Executed once at init time
 #
@@ -68,29 +79,19 @@ function step() {
  		})
 	avg_distance = avg_distance/i
 	avg_angle = math.atan(avg_angle_sin/i, avg_angle_cos/i)
-	#foreach(confidence, function(key, value) {
-				#avg_d = 0.0
-				#avg_theta = 0.0
-				#foreach(map[key],function(neighbor, table) {
-				#	foreach(table,function(distance, angle) {
-				#		log(distance, '->', angle)
-				#		avg_d = avg_d + (distance*value)
-				#		avg_theta = avg_theta + (angle*value)
-				#	})	
-				#})
-    #})
-debug.rays.add(255,0,0,0.0,0.0,0.1, avg_distance*math.cos(avg_angle)/100, avg_distance*math.sin(avg_angle)/100, 0.1 )
+	
+	debug.rays.add(255,0,0,0.0,0.0,0.1, avg_distance*math.cos(avg_angle)/100, avg_distance*math.sin(avg_angle)/100, 0.1 )
 
 
 	avg_angle = avg_angle + pose.orientation.yaw
 	current_vector = {.avg_distance = avg_angle}
 
 	correction_vectors = {}	
-	total_corection_distance = 0.0
 	foreach(map_target_vectors,
-  	function(rid, innnerTable) {
-		total_corection_distance = 		total_corection_distance + (avg_distance - innnerTable.d)
-		correction_vectors[rid] = {.a = (avg_angle-innnerTable.a), .d = (avg_distance - innnerTable.d)}})
+  	function(rid, innerTable) {
+			correction_vectors[rid] = subVectors(avg_angle, avg_distance, innerTable.a, innerTable.d)
+#{.a = (avg_angle-innnerTable.a), .d = (avg_distance - innnerTable.d)}
+		})
 
 	close_est = {}
 	close_est.a = 0
@@ -105,7 +106,7 @@ debug.rays.add(255,0,0,0.0,0.0,0.1, avg_distance*math.cos(avg_angle)/100, avg_di
 		}
 	})
 
-	debug.rays.add(0,255,0,0.0,0.0,0.1, close_est.d*cos(close_est.a), close_est.d*sin(close_est.a), 0.1 )
+	#debug.rays.add(0,255,0, 0.0,0.0,0.1, close_est.d*cos(close_est.a), close_est.d*sin(close_est.a), 0.1 )
 
 }
 
