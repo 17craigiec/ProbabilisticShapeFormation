@@ -14,9 +14,76 @@ function subVectors(theta_0, d_0, theta_1, d_1) {
 }
 
 #
+# Find the distance between two angles
+#
+function delta_angle(angle_1, angle_2) {
+	d = angle_1 - angle_2
+	return math.abs((d + PI) % (2*PI) - PI)
+}
+
+#
+# Get the confidence of a given measured angle vs a confidence angle
+#
+function get_confidence(map_angle, measured_angle){
+	delta = delta_angle(map_angle, measured_angle)
+	return ((-1/(PI))*delta + 1)
+}
+
+#
+# Function returns a confidence map
+#
+function get_confidence_map(pose, neighbors_poses){
+	
+	confidence_map = {}
+
+	# Evaluate the confidence of the robot for each point in the map normalized from [0, 1]
+	foreach(map, function(point, map_edges){
+		
+		# For each edge of the map, find the the most confident set of neighbors
+		foreach(map_edges, function(neighbor, m_values){
+
+			c_total = 0		  
+
+			# For each of the values of the map, find the most confident neighbor measurement
+			foreach(m_values, function(distance, angle){
+
+				var c_max = -1
+				var c_index = nil
+
+				# Find the neighbor measurement that gives the max confidence
+				foreach(neighbors_poses, function(neighbor, r_values){
+					var c = get_confidence(angle, r_values.azimuth - pose.orientation.yaw)
+
+					if (c > c_max) {
+						c_max = c
+						c_index = neighbor
+					}
+
+				})
+
+				neighbors_poses[c_index] = nil
+				c_total = c_total + c_max
+
+			})
+		
+		})
+
+		#confidence_map[point] = c_total
+
+	})
+
+	return confidence_map
+
+}
+
+function init() {
+	reset()
+}
+
+#
 # Executed once at init time
 #
-function init() {
+function noinit() {
   reset()
 	map_target_vectors = {}
 
@@ -44,10 +111,17 @@ function init() {
 
 }
 
+function step(){
+
+	debug.print(get_confidence_map(pose, neighbors.poses))
+	#debug.print(get_confidence(PI,-PI))
+	
+}
+
 #
 # Executed for each step
 #
-function step() {
+function nostep() {
 	obst = reduce(proximity,
 		function(idx,sensor,sofar) {
 			return {
@@ -135,7 +209,6 @@ function move(x, y){
 #
 function reset() {
 	math.rng.setseed(id)
-	task = 0
 	threshold = {}
 	threshold[0] = 500.0
 	threshold[1] = 500.0
