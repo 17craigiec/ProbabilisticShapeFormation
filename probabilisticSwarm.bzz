@@ -54,60 +54,88 @@ function init() {
 #
 function step() {
 
-	avg_distance = 0.0
-	avg_anlge = 0.0
-	avg_angle_sin = 0.0
-	avg_angle_cos = 0.0
-	i = 0.0
-	neighbors.foreach(
-  	function(rid, data) {
-			 i = i + 1
-       avg_distance = avg_distance + data.distance
-			 avg_angle_sin = avg_angle_sin + math.sin(data.azimuth)
-			 avg_angle_cos = avg_angle_cos + math.cos(data.azimuth)
- 		})
-	avg_distance = avg_distance/i
-	avg_angle = math.atan(avg_angle_sin/i, avg_angle_cos/i)
-	#foreach(confidence, function(key, value) {
-				#avg_d = 0.0
-				#avg_theta = 0.0
-				#foreach(map[key],function(neighbor, table) {
-				#	foreach(table,function(distance, angle) {
-				#		log(distance, '->', angle)
-				#		avg_d = avg_d + (distance*value)
-				#		avg_theta = avg_theta + (angle*value)
-				#	})	
-				#})
-    #})
-debug.rays.add(255,0,0,0.0,0.0,0.1, avg_distance*math.cos(avg_angle)/100, avg_distance*math.sin(avg_angle)/100, 0.1 )
+	obst = reduce(proximity,
+		function(idx,sensor,sofar) {
+			return {
+				.x = sofar.x + sensor.value * math.cos(sensor.angle),
+				.y = sofar.y + sensor.value * math.sin(sensor.angle)
+			}}, { .x = 0.0, .y = 0.0 })
+
+	if (neighbors.count() > 0){
+		avg_distance = 0.0
+		avg_anlge = 0.0
+		avg_angle_sin = 0.0
+		avg_angle_cos = 0.0
+		i = 0.0
+		neighbors.foreach(
+  		function(rid, data) {
+				 i = i + 1
+       	avg_distance = avg_distance + data.distance
+			 	avg_angle_sin = avg_angle_sin + math.sin(data.azimuth)
+			 	avg_angle_cos = avg_angle_cos + math.cos(data.azimuth)
+ 			})
+		avg_distance = avg_distance/i
+		avg_angle = math.atan(avg_angle_sin/i, avg_angle_cos/i)
 
 
-	avg_angle = avg_angle + pose.orientation.yaw
-	current_vector = {.avg_distance = avg_angle}
+		debug.rays.add(255,0,0,0.0,0.0,0.1, 		avg_distance*math.cos(avg_angle)/100, avg_distance*math.sin(avg_angle)/100, 0.1 )
 
-	correction_vectors = {}	
-	total_corection_distance = 0.0
-	foreach(map_target_vectors,
+
+		avg_angle = avg_angle + pose.orientation.yaw
+		current_vector = {.avg_distance = avg_angle}
+
+		correction_vectors = {}	
+		total_corection_distance = 0.0
+		foreach(map_target_vectors,
   	function(rid, innnerTable) {
-		total_corection_distance = 		total_corection_distance + (avg_distance - innnerTable.d)
-		correction_vectors[rid] = {.a = (avg_angle-innnerTable.a), .d = (avg_distance - innnerTable.d)}})
+		total_corection_distance = 		total_corection_distance + 	(avg_distance - innnerTable.d)
+		correction_vectors[rid] = {.a = (avg_angle-innnerTable.a), 	.d = (avg_distance - innnerTable.d)}})
 
-	close_est = {}
-	close_est.a = 0
-	close_est.d = 9999
-	close_est.n = 0
-	foreach(correction_vectors,
-  	function(id, table) {
-		if(close_est.d > table.d){
-			close_est.a = table.a
-			close_est.d = table.d
-			close_est.n = id
-		}
-	})
-
-	debug.rays.add(0,255,0,0.0,0.0,0.1, close_est.d*cos(close_est.a), close_est.d*sin(close_est.a), 0.1 )
-
+		close_est = {}
+		close_est.a = 0
+		close_est.d = 9999
+		close_est.n = 0
+		foreach(correction_vectors,
+  		function(id, table) {
+			if(close_est.d > table.d){
+				close_est.a = table.a
+				close_est.d = table.d
+				close_est.n = id
+			}
+		})
+		#debug.rays.add(0,255,0,0.0,0.0,0.1, close_est.d*cos(close_est.a), close_est.d*sin(close_est.a), 0.1 		)
+	}
+	else
+	{
+		diffusing(obst.x, obst.y)
+	}
 }
+
+function diffusing(x, y)
+{
+	if((x < 0.0001) and (y < 0.0001))
+	{
+		gotoc(7, 0) 
+	}else{
+		angle = math.atan(x,y)
+		if((angle > 0) and (3.14 > angle))
+		{
+			set_wheels(-7.0, 7.0)
+		}	
+		else
+		{		 	
+			set_wheels(7.0, -7.0)
+		}
+	}
+}
+
+function move(x, y){
+	offset = pose.orientation.yaw
+	x2 = math.cos(offset)*x - math.sin(offset)*y
+	y2 = math.sin(offset)*x + math.cos(offset)*y
+	gotoc(x2,y2)
+}
+
 
 #
 # Executed once upon resetting
