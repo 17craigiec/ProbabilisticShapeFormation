@@ -29,46 +29,58 @@ function get_confidence(map_angle, measured_angle){
 	return ((-1/(PI))*delta + 1)
 }
 
+# copying tables the right way
+function table_copy(t) {
+  var t2 = {}
+  foreach(t, function(key, value) {
+      t2[key] = value
+    })
+  return t2
+}
+
 #
 # Function returns a confidence map
 #
-function get_confidence_map(pose, neighbors_poses){
+function get_confidence_map(){
 	
 	confidence_map = {}
-
+	
 	# Evaluate the confidence of the robot for each point in the map normalized from [0, 1]
 	foreach(map, function(point, map_edges){
-		
-		# For each edge of the map, find the the most confident set of neighbors
-		foreach(map_edges, function(neighbor, m_values){
 
-			c_total = 0		  
+		neighbors_poses = table_copy(neighbors.poses)
 
-			# For each of the values of the map, find the most confident neighbor measurement
-			foreach(m_values, function(distance, angle){
+		if(size(map_edges) != size(neighbors_poses)){
+			confidence_map[point] = 0
+		} else {
+			c_total = 0
 
-				var c_max = -1
-				var c_index = nil
+			foreach(map_edges, function(m_neighbor, m_values){ 
+				foreach(m_values, function(distance, angle){
 
-				# Find the neighbor measurement that gives the max confidence
-				foreach(neighbors_poses, function(neighbor, r_values){
-					var c = get_confidence(angle, r_values.azimuth - pose.orientation.yaw)
+					c_max = -1
+					c_index = nil
 
-					if (c > c_max) {
-						c_max = c
-						c_index = neighbor
-					}
+					foreach(neighbors_poses, function(r_neighbor, r_values){
 
-				})
+						c = get_confidence(angle, r_values.azimuth - pose.orientation.yaw)
+
+						if (c > c_max) {
+							c_max = c
+							c_index = r_neighbor
+						}
+
+					})
 
 				neighbors_poses[c_index] = nil
 				c_total = c_total + c_max
 
+				})
 			})
-		
-		})
 
-		#confidence_map[point] = c_total
+			confidence_map[point] = c_total/size(map_edges)
+
+		}
 
 	})
 
@@ -113,10 +125,14 @@ function noinit() {
 
 function step(){
 
-	debug.print(get_confidence_map(pose, neighbors.poses))
-	#debug.print(get_confidence(PI,-PI))
+
+	#confidence_map = {.0 = 12, .1 = 23}
+	confidence_map = get_confidence_map()
+
+	#debug.print(confidence_map)
 	
 }
+
 
 #
 # Executed for each step
