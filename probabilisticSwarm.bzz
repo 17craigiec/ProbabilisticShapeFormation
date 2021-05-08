@@ -23,8 +23,80 @@ function drawGlobalLine(r,g,b, x,y) {
 }
 
 #
-# Executed once at init time
+# Find the distance between two angles
 #
+function delta_angle(angle_1, angle_2) {
+	d = angle_1 - angle_2
+	return math.abs((d + PI) % (2*PI) - PI)
+}
+
+#
+# Get the confidence of a given measured angle vs a confidence angle
+#
+function get_confidence(map_angle, measured_angle){
+	delta = delta_angle(map_angle, measured_angle)
+	return ((-1/(PI))*delta + 1)
+}
+
+# copying tables the right way
+function table_copy(t) {
+  var t2 = {}
+  foreach(t, function(key, value) {
+      t2[key] = value
+    })
+  return t2
+}
+
+#
+# Function returns a confidence map
+#
+function get_confidence_map(){
+	
+	confidence_map = {}
+	
+	# Evaluate the confidence of the robot for each point in the map normalized from [0, 1]
+	foreach(map, function(point, map_edges){
+
+		neighbors_poses = table_copy(neighbors.poses)
+
+		if(size(map_edges) != size(neighbors_poses)){
+			confidence_map[point] = 0
+		} else {
+			c_total = 0
+
+			foreach(map_edges, function(m_neighbor, m_values){ 
+				foreach(m_values, function(distance, angle){
+
+					c_max = -1
+					c_index = nil
+
+					foreach(neighbors_poses, function(r_neighbor, r_values){
+
+						c = get_confidence(angle, r_values.azimuth - pose.orientation.yaw)
+
+						if (c > c_max) {
+							c_max = c
+							c_index = r_neighbor
+						}
+
+					})
+
+				neighbors_poses[c_index] = nil
+				c_total = c_total + c_max
+
+				})
+			})
+
+			confidence_map[point] = c_total/size(map_edges)
+
+		}
+
+	})
+
+	return confidence_map
+
+}
+
 function init() {
   reset()
 	map_target_vectors = {}
@@ -50,13 +122,10 @@ function init() {
 		avg_nangle = math.atan(avg_nangle_sin, avg_nangle_cos)
 		map_target_vectors[point] = {.d = avg_ndistance, .a = avg_nangle}
 	}) 
-
 }
 
-#
-# Executed for each step
-#
 function step() {
+	confidence_map = get_confidence_map()
 	cur_heading = pose.orientation.yaw
 	obst = reduce(proximity,
 		function(idx,sensor,sofar) {
@@ -162,11 +231,7 @@ function move(x, y){
 # Executed once upon resetting
 #
 function reset() {
-	confidence = {}
-  confidence[0] = 0.75
-	confidence[1] = 0.10
-	confidence[2] = 0.12
-	confidence[3] = 0.03
+
 }
 
 #
