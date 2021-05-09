@@ -3,8 +3,6 @@ PI = 3.14159
 map = { .0 = { .1 = { .129.75 = -1.37}, .2 = { .111.87 = -0.29}, .3 = { .207.39 = -0.63}, .4 = { .206.44 = 0.02}}, .1 = { .0 = { .129.75 = 1.77}, .2 = { .125.39 = 0.86}, .3 = { .142.51 = 0.04}, .4 = { .223.39 = 0.63}}, .2 = { .0 = { .111.87 = 2.85}, .1 = { .125.39 = -2.28}, .3 = { .108.28 = -0.97}, .4 = { .105.53 = 0.35}}, .3 = { .0 = { .207.39 = 2.52}, .1 = { .142.51 = -3.10}, .2 = { .108.28 = 2.17}, .4 = { .131.34 = 1.27}}, .4 = { .0 = { .206.44 = -3.12}, .1 = { .223.39 = -2.51}, .2 = { .105.53 = -2.79}, .3 = { .131.34 = -1.87}}}
 
 
-
-
 # Subtracts Vector 1 from Vector 0
 function subVectors(theta_0, d_0, theta_1, d_1) {
 	x_sub = d_0*math.cos(theta_0) - d_1*math.cos(theta_1)
@@ -34,19 +32,14 @@ function delta_angle(angle_1, angle_2) {
 #
 # Get the confidence of a given measured angle vs a confidence angle
 #
-ALPHA = 10 # Stepness
-BETA = PI/4 # 50% value: range from 0 to PI
+ALPHA = 1 # Stepness
+BETA = PI/2 # 50% value: range from 0 to PI
 
 function get_confidence(map_angle, measured_angle){
 	delta = delta_angle(map_angle, measured_angle)
-	return ((-1/(PI))*delta + 1)
+	#return ((-1/(PI))*delta + 1)
 
-	#log(ALPHA*(delta-BETA))
-
-	#inner = 1 + exp(0)
-	#log(inner)
-
-	#return 0
+	return 1/(1 + math.exp(ALPHA*(delta-BETA)))
 }
 
 # copying tables the right way
@@ -70,7 +63,7 @@ function get_confidence_map(){
 
 		neighbors_poses = table_copy(neighbors.poses)
 
-		if(size(map_edges) != size(neighbors_poses)){
+		if(size(neighbors_poses) == 0){
 			confidence_map[point] = 0
 		} else {
 			c_total = 0
@@ -78,22 +71,26 @@ function get_confidence_map(){
 			foreach(map_edges, function(m_neighbor, m_values){ 
 				foreach(m_values, function(distance, angle){
 
-					c_max = -1
-					c_index = nil
+					if(size(neighbors_poses) != 0){
 
-					foreach(neighbors_poses, function(r_neighbor, r_values){
+						c_max = -1
+						c_index = nil
 
-						c = get_confidence(angle, r_values.azimuth - pose.orientation.yaw)
+						foreach(neighbors_poses, function(r_neighbor, r_values){
 
-						if (c > c_max) {
-							c_max = c
-							c_index = r_neighbor
-						}
+							c = get_confidence(angle, r_values.azimuth - pose.orientation.yaw)
 
-					})
+							if (c > c_max) {
+								c_max = c
+								c_index = r_neighbor
+							}
 
-				neighbors_poses[c_index] = nil
-				c_total = c_total + c_max
+						})
+
+						neighbors_poses[c_index] = nil
+						c_total = c_total + c_max
+
+					}
 
 				})
 			})
@@ -109,9 +106,11 @@ function get_confidence_map(){
 		total = total + value
 	})
 
-	foreach(confidence_map, function(point, value){
-		confidence_map[point] = value/total
-	})
+	if (total > 0){
+		foreach(confidence_map, function(point, value){
+			confidence_map[point] = value/total
+		})
+	}
 
 	return confidence_map
 
