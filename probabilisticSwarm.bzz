@@ -1,6 +1,7 @@
 PI = 3.14159
 
-map = { .0 = { .1 = { .188.19 = -2.04}, .2 = { .115.52 = -0.54}, .3 = { .117.19 = -2.62}, .4 = { .173.95 = -1.29}}, .1 = { .0 = { .188.19 = 1.10}, .2 = { .213.76 = 0.53}, .3 = { .110.88 = 1.72}, .4 = { .132.80 = 0.01}}, .2 = { .0 = { .115.52 = 2.60}, .1 = { .213.76 = -2.61}, .3 = { .200.80 = 3.14}, .4 = { .119.52 = -2.01}}, .3 = { .0 = { .117.19 = 0.52}, .1 = { .110.88 = -1.42}, .2 = { .200.80 = -0.00}, .4 = { .184.98 = -0.63}}, .4 = { .0 = { .173.95 = 1.85}, .1 = { .132.80 = -3.14}, .2 = { .119.52 = 1.13}, .3 = { .184.98 = 2.51}}}
+map = { .0 = { .1 = { .129.75 = -1.37}, .2 = { .111.87 = -0.29}, .3 = { .207.39 = -0.63}, .4 = { .206.44 = 0.02}}, .1 = { .0 = { .129.75 = 1.77}, .2 = { .125.39 = 0.86}, .3 = { .142.51 = 0.04}, .4 = { .223.39 = 0.63}}, .2 = { .0 = { .111.87 = 2.85}, .1 = { .125.39 = -2.28}, .3 = { .108.28 = -0.97}, .4 = { .105.53 = 0.35}}, .3 = { .0 = { .207.39 = 2.52}, .1 = { .142.51 = -3.10}, .2 = { .108.28 = 2.17}, .4 = { .131.34 = 1.27}}, .4 = { .0 = { .206.44 = -3.12}, .1 = { .223.39 = -2.51}, .2 = { .105.53 = -2.79}, .3 = { .131.34 = -1.87}}}
+
 
 
 
@@ -33,9 +34,19 @@ function delta_angle(angle_1, angle_2) {
 #
 # Get the confidence of a given measured angle vs a confidence angle
 #
+ALPHA = 10 # Stepness
+BETA = PI/4 # 50% value: range from 0 to PI
+
 function get_confidence(map_angle, measured_angle){
 	delta = delta_angle(map_angle, measured_angle)
 	return ((-1/(PI))*delta + 1)
+
+	#log(ALPHA*(delta-BETA))
+
+	#inner = 1 + exp(0)
+	#log(inner)
+
+	#return 0
 }
 
 # copying tables the right way
@@ -93,6 +104,15 @@ function get_confidence_map(){
 
 	})
 
+	total = 0
+	foreach(confidence_map, function(point, value){
+		total = total + value
+	})
+
+	foreach(confidence_map, function(point, value){
+		confidence_map[point] = value/total
+	})
+
 	return confidence_map
 
 }
@@ -125,6 +145,8 @@ function init() {
 }
 
 function step() {
+
+
 	confidence_map = get_confidence_map()
 	cur_heading = pose.orientation.yaw
 	obst = reduce(proximity,
@@ -166,38 +188,49 @@ function step() {
   	function(rid, innerTable) {
 			correction_vectors[rid] = subVectors(cur_avg_vector.theta, cur_avg_vector.mag, innerTable.a, innerTable.d)
 		})
-	close_est = {}
-	close_est.mag = 9999
-	close_est.x = 0
-	close_est.y = 0
-	close_est.id = -1
+	
+	# confidence vector
+	confidence_vector = {}
+	confidence_vector.mag = 0
+	confidence_vector.x = 0
+	confidence_vector.y = 0
+
+	hasConfidence = 0
+
+	# replace with confidence sum
 	foreach(correction_vectors,
   	function(id, table) {
-		if(close_est.mag > table.mag){
-			close_est.mag = table.mag
-			close_est.x = table.x
-			close_est.y = table.y
-			close_est.id = id
+		if (confidence_map[id] != 0)
+		{
+			hasConfidence = 1
 		}
+		confidence_vector.mag = confidence_vector.mag +  confidence_map[id]*table.mag
+		confidence_vector.x = confidence_vector.x + confidence_map[id]*table.x
+		confidence_vector.y = confidence_vector.y + confidence_map[id]*table.y
+
 	})
 
 	#move(close_est.x,close_est.y)  
-		drawGlobalLine(0,205,50, close_est.x/100,close_est.y/100)
-		move(close_est.x, close_est.y)
+		drawGlobalLine(0,205,50, confidence_vector.x/100, confidence_vector.y/100)
+		if (hasConfidence)
+			move(confidence_vector.x, confidence_vector.y, 0)
+		else
+			move(obst.x, obst.y, 1)
 	}
 	else
 	{
-		diffusing(obst.x, obst.y)
+		move(obst.x, obst.y, 1)
 	}
 }
 
-function diffusing(x, y)
-{
-	if((x < 0.0001) and (y < 0.0001))
-	{
-		gotoc(7, 0) 
-	}else{
-		angle = math.atan(x,y)
+
+function move(x, y, diffuse){
+	if(diffuse){
+		if((x < 0.0001) and (y < 0.0001))
+		{
+			gotoc(7, 0) 
+		}else{
+			angle = math.atan(x,y)
 		if((angle > 0) and (3.14 > angle))
 		{
 			set_wheels(-7.0, 7.0)
@@ -206,24 +239,24 @@ function diffusing(x, y)
 		{		 	
 			set_wheels(7.0, -7.0)
 		}
-	}
-}
-
-function move(x, y){
-	desired_angle = math.atan(y, x)
-	error = pose.orientation.yaw - desired_angle
-	error_threshold = 0.04
-	if(math.abs(error) < error_threshold)
-	{
-		set_wheels(10.0,10.0)
-	}
-	else if (error > 0){
-		set_wheels(5.0,-5.0)
+		}
 	}
 	else{
-		set_wheels(-5.0,5.0)
-	} 
-	debug.print("Err:", error, "   da:", desired_angle)
+		desired_angle = math.atan(y, x)
+		error = pose.orientation.yaw - desired_angle
+		error_threshold = 0.04
+		if(math.abs(error) < error_threshold)
+		{
+			set_wheels(10.0,10.0)
+		}
+		else if (error > 0){
+			set_wheels(5.0,-5.0)
+		}
+		else{
+			set_wheels(-5.0,5.0)
+		} 
+		debug.print("Err:", error, "   da:", desired_angle)
+	}
 }
 
 
