@@ -24,112 +24,11 @@ function get_confidence(map_angle, measured_angle){
 	return confidence
 }
 
-# copying tables the right way
-function table_copy(t) {
-  var t2 = {}
-  foreach(t, function(key, value) {
-      t2[key] = value
-    })
-  return t2
-}
-
-function get_max_confidence(list_of_confidences){
-
-	best_sum = 0
-
-	foreach(list_of_confidences, function(index, r_c){
-
-		c_sum = 0
-
-		foreach(r_c, function(rid, confidence){
-				
-			c_sum = c_sum + confidence
-
-		})
-
-		if (c_sum > best_sum){
-			
-			best_sum = c_sum
-
-		}
-
-	})
-
-	return best_sum
-
-}
-
-# Returns a table of indexes where there is no desired robot
-function list_contains_robot(list, robot){
-
-	retval = {}
-
-	foreach(list, function(index, r_c){
-	
-		no_robot = 1
-
-		foreach(r_c, function(rid, val){
-
-			if(rid == robot) {
-				no_robot = 0
-			}
-
-		})
-
-		if(no_robot) {
-			retval[index] = 1
-		}
-
-	})
-
-	return retval
-
-}
-
-# Find the max confidence arrangement given the list of confidences, map_node is the node on the map the confidence is comparing to, r_c is a table containing the neighbors robot id and the confidence in the specific map node
-function find_max_confidence(list_of_confidence){
-
-	possible_c = {}
-	index = 0
-
-	foreach(list_of_confidence, function(map_node, r_c){
-
-		foreach(r_c, function(rid, c_val){
-
-			lcr = list_contains_robot(possible_c, rid)
-
-			if(size(lcr)){
-
-				foreach(lcr, function(index, one){
-
-					possible_c[index][rid] = c_val
-
-				})
-
-			} else {
-
-				c_list = {}			
-				c_list[rid] = c_val	
-
-				possible_c[index] = c_list
-				index = index + 1
-
-			}
-
-		})
-
-	})
-
-	return get_max_confidence(possible_c)
-
-}
-
 #
 # Function returns a confidence map
 #
 function get_confidence_map(){
 
-	
 	neighbors_poses = neighbors.poses
 
 	# Evaluate the confidence of the robot for each point in the map normalized from [0, 1]
@@ -140,33 +39,22 @@ function get_confidence_map(){
 		if(size(neighbors_poses) == 0){
 			confidence_map[point] = 0
 		} else {
-			c_total = 0
-
-			p_c = {} # Possible confidences {.Point = {.Neighbor_1 = c1, .Neighbor_2 = c2}}
 
 			foreach(map_edges, function(m_neighbor, m_values){ 
 				foreach(m_values, function(distance, angle){
 
-
-					r_c = {} # List of confidences per neighbor robot
+					total_angle = 0 # Sum of the angle of the robot neighbors
 
 					foreach(neighbors_poses, function(r_neighbor, r_values){
 
-						c = get_confidence(angle, r_values.azimuth + pose.orientation.yaw)
-
-						r_c[r_neighbor] = c
+						total_angle = total_angle + (r_values.azimuth + pose.orientation.yaw)
 
 					})
-
-					p_c[m_neighbor] = r_c
-
-					#c_total = c_total + c
 
 				})
 			})
 
-			c_max = find_max_confidence(p_c)
-			confidence_map[point] = c_max/size(map_edges)
+			confidence_map[point] = get_confidence(map_angle, total_angle)
 
 		}
 
