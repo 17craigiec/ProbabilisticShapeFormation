@@ -1,6 +1,7 @@
 PI = 3.14159
 
-map = { .0 = { .1 = { .129.75 = -1.37}, .2 = { .111.87 = -0.29}, .3 = { .207.39 = -0.63}, .4 = { .206.44 = 0.02}}, .1 = { .0 = { .129.75 = 1.77}, .2 = { .125.39 = 0.86}, .3 = { .142.51 = 0.04}, .4 = { .223.39 = 0.63}}, .2 = { .0 = { .111.87 = 2.85}, .1 = { .125.39 = -2.28}, .3 = { .108.28 = -0.97}, .4 = { .105.53 = 0.35}}, .3 = { .0 = { .207.39 = 2.52}, .1 = { .142.51 = -3.10}, .2 = { .108.28 = 2.17}, .4 = { .131.34 = 1.27}}, .4 = { .0 = { .206.44 = -3.12}, .1 = { .223.39 = -2.51}, .2 = { .105.53 = -2.79}, .3 = { .131.34 = -1.87}}}
+map = { .0 = { .1 = { .100.54 = 1.12}, .2 = { .83.26 = -0.04}}, .1 = { .0 = { .100.54 = -2.02}, .2 = { .101.48 = -1.17}}, .2 = { .0 = { .83.26 = 3.10}, .1 = { .101.48 = 1.97}}}
+
 
 
 # Subtracts Vector 1 from Vector 0
@@ -32,14 +33,15 @@ function delta_angle(angle_1, angle_2) {
 #
 # Get the confidence of a given measured angle vs a confidence angle
 #
-ALPHA = 1 # Stepness
-BETA = PI/2 # 50% value: range from 0 to PI
+ALPHA = 10 # Steepness
+BETA = PI/4 # 50% value: range from 0 to PI
 
 function get_confidence(map_angle, measured_angle){
 	delta = delta_angle(map_angle, measured_angle)
-	#return ((-1/(PI))*delta + 1)
+	confidence = 1/(1 + math.exp(ALPHA*(delta-BETA)))
+	log("Delta: ", delta, " confidence: ", confidence)
 
-	return 1/(1 + math.exp(ALPHA*(delta-BETA)))
+	return confidence
 }
 
 # copying tables the right way
@@ -51,56 +53,116 @@ function table_copy(t) {
   return t2
 }
 
+function get_best_map(list_of_maps){
+
+	best_map = nil
+	best_sum = 0
+
+	foreach(list_of_maps, function(index, map){
+
+		c_sum = 0
+
+		foreach(map, function(point, confidence){
+				
+			c_sum = c_sum + confidence
+
+		})
+
+		if (c_sum > best_sum){
+			
+			best_map = index
+			best_sum = c_sum
+
+		}
+
+	})
+
+	return list_of_maps[best_map]
+
+}
+
+# Returns nil if no confidence in the list contains the target robot, but returns the list if there is the target robot
+function c_list_contains_robot(c_list, robot){
+
+	foreach(c_list, function(rid, c_val){
+		if(rid == robot) {
+			return c_list
+		}
+	})
+
+}
+
+# Find the max confidence arrangement given the list of confidences, map_node is the node on the map the confidence is comparing to, r_c is a table containing the neighbors robot id and the confidence in the specific map node
+function find_max_confidence(list_of_confidence){
+
+	possible_c = {}
+	index = 0
+
+	foreach(list_of_confidence, function(map_node, r_c){
+
+		foreach(r_c, function(rid, c_val){
+
+			#if(c_list_contains_robot())
+
+		})
+
+	})
+
+}
+
 #
 # Function returns a confidence map
 #
 function get_confidence_map(){
+
 	
-	confidence_map = {}
-	
+	neighbors_poses = neighbors.poses
+
 	# Evaluate the confidence of the robot for each point in the map normalized from [0, 1]
 	foreach(map, function(point, map_edges){
 
-		neighbors_poses = table_copy(neighbors.poses)
+		confidence_map = {}
 
 		if(size(neighbors_poses) == 0){
 			confidence_map[point] = 0
 		} else {
 			c_total = 0
 
+			log("Point: ", point)
+			p_c = {} # Possible confidences {.Point = {.Neighbor_1 = c1, .Neighbor_2 = c2}}
+
 			foreach(map_edges, function(m_neighbor, m_values){ 
 				foreach(m_values, function(distance, angle){
 
-					if(size(neighbors_poses) != 0){
+					log("Map Neighbor: ", m_neighbor)
 
-						c_max = -1
-						c_index = nil
+					r_c = {} # List of confidences per neighbor robot
 
-						foreach(neighbors_poses, function(r_neighbor, r_values){
+					foreach(neighbors_poses, function(r_neighbor, r_values){
 
-							c = get_confidence(angle, r_values.azimuth - pose.orientation.yaw)
+						log("Robot Neighbor: ", r_neighbor)
 
-							if (c > c_max) {
-								c_max = c
-								c_index = r_neighbor
-							}
+						c = get_confidence(angle, r_values.azimuth + pose.orientation.yaw)
 
-						})
+						r_c[r_neighbor] = c
 
-						neighbors_poses[c_index] = nil
-						c_total = c_total + c_max
+					})
 
-					}
+					p_c[m_neighbor] = r_c
+
+					#c_total = c_total + c
 
 				})
 			})
 
-			confidence_map[point] = c_total/size(map_edges)
+			c_max = find_max_confidence(p_c)
+			confidence_map[point] = c_max/size(map_edges)
 
 		}
 
 	})
 
+	# Normalize total probabilities from 0 to 1
 	total = 0
 	foreach(confidence_map, function(point, value){
 		total = total + value
@@ -145,6 +207,7 @@ function init() {
 
 function step() {
 
+	log("Robot: ", id)
 
 	confidence_map = get_confidence_map()
 	cur_heading = pose.orientation.yaw
