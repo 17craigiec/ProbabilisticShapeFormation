@@ -163,9 +163,12 @@ function step() {
 			if(correction_vectors[rid].mag < drive_vector.mag and blocked_ids[rid] == 0 and count%4 == 1) {
 				drive_vector = correction_vectors[rid]
 				drive_vector.id = rid
+				drive_vector.mag = correction_vectors[rid].mag
 			}
 		})
 
+		target_goal = drive_vector.id
+		positional_error = drive_vector.mag
 		move(drive_vector.x, drive_vector.y, 0)
 
 		# Switch Handling
