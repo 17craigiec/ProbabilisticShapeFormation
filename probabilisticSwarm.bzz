@@ -1,7 +1,10 @@
 PI = 3.14159
 first_loop = 1
 
-map = { .0 = { .1 = { .88.97 = 0.91}, .2 = { .169.59 = 0.53}, .3 = { .223.40 = 0.31}, .4 = { .212.02 = 0.02}, .5 = { .125.23 = 0.08}}, .1 = { .0 = { .88.97 = -2.23}, .2 = { .93.25 = 0.16}, .3 = { .158.42 = -0.02}, .4 = { .171.33 = -0.40}, .5 = { .92.50 = -0.71}}, .2 = { .0 = { .169.59 = -2.61}, .1 = { .93.25 = -2.98}, .3 = { .68.69 = -0.26}, .4 = { .105.32 = -0.90}, .5 = { .78.24 = -1.85}}, .3 = { .0 = { .223.40 = -2.83}, .1 = { .158.42 = 3.13}, .2 = { .68.69 = 2.88}, .4 = { .64.80 = -1.58}, .5 = { .105.17 = -2.56}}, .4 = { .0 = { .212.02 = -3.13}, .1 = { .171.33 = 2.74}, .2 = { .105.32 = 2.24}, .3 = { .64.80 = 1.56}, .5 = { .87.50 = 3.06}}, .5 = { .0 = { .125.23 = -3.06}, .1 = { .92.50 = 2.44}, .2 = { .78.24 = 1.29}, .3 = { .105.17 = 0.58}, .4 = { .87.50 = -0.08}}}
+map = { .0 = { .1 = { .96.27 = 2.70}, .2 = { .168.60 = 2.27}, .3 = { .213.54 = 1.91}, .4 = { .222.41 = 1.58}, .5 = { .221.97 = 1.17}, .6 = { .187.39 = 0.82}, .7 = { .152.53 = 0.50}, .8 = { .75.14 = 0.33}}, .1 = { .0 = { .96.27 = -0.44}, .2 = { .90.61 = 1.81}, .3 = { .161.68 = 1.47}, .4 = { .200.42 = 1.13}, .5 = { .238.23 = 0.76}, .6 = { .235.24 = 0.42}, .7 = { .223.22 = 0.15}, .8 = { .159.29 = -0.11}}, .2 = { .0 = { .168.60 = -0.87}, .1 = { .90.61 = -1.33}, .3 = { .82.31 = 1.09}, .4 = { .141.71 = 0.72}, .5 = { .208.73 = 0.37}, .6 = { .236.16 = 0.04}, .7 = { .248.61 = -0.22}, .8 = { .208.29 = -0.53}}, .3 = { .0 = { .213.54 = -1.23}, .1 = { .161.68 = -1.67}, .2 = { .82.31 = -2.06}, .4 = { .71.11 = 0.30}, .5 = { .156.03 = 0.02}, .6 = { .207.71 = -0.31}, .7 = { .240.83 = -0.56}, .8 = { .227.14 = -0.90}}, .4 = { .0 = { .222.41 = -1.56}, .1 = { .200.42 = -2.01}, .2 = { .141.71 = -2.42}, .3 = { .71.11 = -2.84}, .5 = { .89.74 = -0.20}, .6 = { .154.88 = -0.58}, .7 = { .201.59 = -0.83}, .8 = { .211.61 = -1.22}}, .5 = { .0 = { .221.97 = -1.97}, .1 = { .238.23 = -2.38}, .2 = { .208.73 = -2.77}, .3 = { .156.03 = -3.12}, .4 = { .89.74 = 2.94}, .6 = { .79.03 = -1.02}, .7 = { .139.70 = -1.22}, .8 = { .181.37 = -1.65}}, .6 = { .0 = { .187.39 = -2.32}, .1 = { .235.24 = -2.72}, .2 = { .236.16 = -3.10}, .3 = { .207.71 = 2.83}, .4 = { .154.88 = 2.56}, .5 = { .79.03 = 2.13}, .7 = { .64.32 = -1.47}, .8 = { .126.65 = -2.03}}, .7 = { .0 = { .152.53 = -2.64}, .1 = { .223.22 = -2.99}, .2 = { .248.61 = 2.92}, .3 = { .240.83 = 2.58}, .4 = { .201.59 = 2.31}, .5 = { .139.70 = 1.92}, .6 = { .64.32 = 1.67}, .8 = { .79.71 = -2.47}}, .8 = { .0 = { .75.14 = -2.82}, .1 = { .159.29 = 3.04}, .2 = { .208.29 = 2.61}, .3 = { .227.14 = 2.24}, .4 = { .211.61 = 1.93}, .5 = { .181.37 = 1.49}, .6 = { .126.65 = 1.11}, .7 = { .79.71 = 0.67}}}
+
+
+
 
 # Subtracts Vector 1 from Vector 0
 function subVectors(theta_0, d_0, theta_1, d_1) {
@@ -32,14 +35,22 @@ function delta_angle(angle_1, angle_2) {
 #
 # Get the confidence of a given measured angle vs a confidence angle
 #
-ALPHA = 10 # Steepness
-BETA = PI/4 # 50% value: range from 0 to PI
+ALPHA = 20 # Steepness
+BETA = PI/8 # 50% value: range from 0 to PI
 
 function get_confidence(map_vector, measured_vector){
 	delta = delta_angle(map_vector.a, measured_vector.theta)
 	confidence = 1/(1 + math.exp(ALPHA*(delta-BETA)))
 
 	return confidence
+}
+
+function table_copy(t) {
+  var t2 = {}
+  foreach(t, function(key, value) {
+      t2[key] = value
+    })
+  return t2
 }
 
 #
@@ -55,6 +66,8 @@ function get_confidence_map(){
 		confidence_map[point] = get_confidence(map_target_vectors[point], cur_avg_vector)
 
 	})
+
+	debug_confidence_map = table_copy(confidence_map)
 
 	# Normalize total probabilities from 0 to 1
 	total = 0
@@ -134,7 +147,7 @@ function step() {
 	cur_avg_vector.mag = ((cur_avg_vector.x)^2+(cur_avg_vector.y)^2)^0.5
 	cur_avg_vector.theta = math.atan(cur_avg_vector.y,cur_avg_vector.x)
 
-	debug.print(cur_heading*180/PI)
+	#debug.print(cur_heading*180/PI)
 	drawGlobalLine(205,50,0, cur_avg_vector.x/100,cur_avg_vector.y/100)
 
 	confidence_map = get_confidence_map()
@@ -152,7 +165,7 @@ function step() {
 	}
 }
 
-P = 0.05
+P = 0.9
 
 function moveWithConfidence()
 {
@@ -164,18 +177,31 @@ function moveWithConfidence()
 		foreach(confidence_map, function(point, conf){
 			if(total <= rng_num and rng_num < total+conf)
 			{
-				confidence_vector = correction_vectors[point]
 				target_goal = point
-				positional_error = confidence_vector.mag
-				move(confidence_vector.x, confidence_vector.y, 0)	
 			}
 			first_loop = 0
 			total = total + conf
 		})
-	}else
-	{
-		move(correction_vectors[target_goal].x, correction_vectors[target_goal].y, 0)
 	}
+
+	confidence_vector = correction_vectors[target_goal]
+	positional_error = confidence_vector.mag
+	
+	peter_move(confidence_vector.x, confidence_vector.y)
+
+	#move(confidence_vector.x, confidence_vector.y, 0)
+
+	debug.print(target_goal)
+}
+
+av_f = 500
+function peter_move(x,y){
+
+	x_val = x*math.cos(pose.orientation.yaw) + y*math.sin(pose.orientation.yaw)
+	y_val = -x*math.sin(pose.orientation.yaw) + y*math.cos(pose.orientation.yaw)
+
+	gotoc(x_val - av_f*obst.x, y_val - av_f*obst.y)
+
 }
 
 function move(x, y, diffuse){
@@ -209,7 +235,7 @@ function move(x, y, diffuse){
 		else{
 			set_wheels(-5.0,5.0)
 		} 
-		debug.print("Err:", error, "   da:", desired_angle)
+		#debug.print("Err:", error, "   da:", desired_angle)
 	}
 }
 
