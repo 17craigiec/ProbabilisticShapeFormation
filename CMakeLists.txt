@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.8.0)
-project(ProbabilisticShapeFormation)
+project(probabilisticShapeFormation)
+
 
 # Compile in Release by default
 if(CMAKE_BUILD_TYPE STREQUAL "")

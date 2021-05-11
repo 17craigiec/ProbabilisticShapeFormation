@@ -49,16 +49,11 @@ public:
     */
    virtual void Destroy();
 
-   virtual void BuzzBytecodeUpdated();
-
 private:
 
    int GetNumRobots() const;
 
 private:
-   /** The stimuli associated to the tasks */
-   std::vector<Real> m_vecStimuli;
-
    /** The output file name */
    std::string m_strOutFile;
 

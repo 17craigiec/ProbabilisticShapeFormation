@@ -101,6 +101,27 @@
 
   </controllers>
 
+  <!-- ****************** -->
+  <!-- * Loop functions * -->
+  <!-- ****************** -->
+  <!--
+      Experiment configuration:
+      - outfile: the output file name
+      - delta: stimulus increase per unit time (slide 16)
+      - alpha: efficiency factor (slide 16)
+      - tasks: parameter 'm' in the slides
+               if you change 'tasks', you must change it also in the script!
+               (not required for this homework, but just in case you want to play)
+  -->
+  <loop_functions library="build/libprobabilisticShapeFormation"
+                  label="probabilisticShapeFormation"
+                  outfile="data.dat">
+  </loop_functions> 
+
+
+
+
+
   <!-- *********************** -->
   <!-- * Arena configuration * -->
   <!-- *********************** -->
