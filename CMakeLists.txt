@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.8.0)
 project(probabilisticShapeFormation)
 
+
 # Compile in Release by default
 if(CMAKE_BUILD_TYPE STREQUAL "")
   set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel ..." FORCE)

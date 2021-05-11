@@ -49,7 +49,6 @@ public:
     */
    virtual void Destroy();
 
-
 private:
 
    int GetNumRobots() const;

@@ -1,6 +1,5 @@
 #include "probabilisticShapeFormation.h"
 #include "buzz/buzzvm.h"
-
 /****************************************/
 /****************************************/
 
@@ -11,6 +10,7 @@ struct GetRobotData : public CBuzzLoopFunctions::COperation {
 
    /** Constructor */
   GetRobotData(int n_tasks) : m_vecTaskCounts(n_tasks, 0) {}
+
 
    /** The action happens here */
    virtual void operator()(const std::string& str_robot_id,
@@ -29,6 +29,7 @@ struct GetRobotData : public CBuzzLoopFunctions::COperation {
       m_vecRobotsGoals[t_vm->robot] = nGoal;
       /* Get the current error */
       buzzobj_t tPositionalError = BuzzGet(t_vm, "positional_error");
+
       if(!buzzobj_isfloat(tPositionalError)) {
          LOGERR << str_robot_id << ": variable 'positional_error' has wrong type " << buzztype_desc[tPositionalError->o.type] << std::endl;
          return;
@@ -45,7 +46,6 @@ struct GetRobotData : public CBuzzLoopFunctions::COperation {
    /* Robot-error mapping */
    std::map<int,float > m_vecRobotsError;
 };
-
 
 /****************************************/
 /****************************************/
