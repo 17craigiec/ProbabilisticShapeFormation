@@ -16,7 +16,7 @@ struct GetRobotData : public CBuzzLoopFunctions::COperation {
    virtual void operator()(const std::string& str_robot_id,
                            buzzvm_t t_vm) {
       /* Get the current task */
-      buzzobj_t tGoal = BuzzGet(t_vm, "target_goal");
+      buzzobj_t tGoal = BuzzGet(t_vm, "final_goal");
       /* Make sure it's the type we expect (an integer) */
       if(!buzzobj_isint(tGoal)) {
          LOGERR << str_robot_id << ": variable 'target_goal' has wrong type " << buzztype_desc[tGoal->o.type] << std::endl;
@@ -24,7 +24,6 @@ struct GetRobotData : public CBuzzLoopFunctions::COperation {
       }
       /* Get the value */
       int nGoal = buzzobj_getint(tGoal);
-      ++m_vecRobotsGoals[nGoal];
       /* Set the mapping */
       m_vecRobotsGoals[t_vm->robot] = nGoal;
       /* Get the current error */
@@ -36,7 +35,6 @@ struct GetRobotData : public CBuzzLoopFunctions::COperation {
       }
       /* Get the values */
       float nPositionError = buzzobj_getfloat(tPositionalError);
-      ++m_vecRobotsError[nPositionError];
       /* Set the mapping */
       m_vecRobotsError[t_vm->robot] = nPositionError;
    }
@@ -92,7 +90,7 @@ void CProbabilisticShapeFormation::PostStep() {
          m_cOutFile << GetSpace().GetSimulationClock() << "\t"
                     << i << "\t"
                     << cGetRobotData.m_vecRobotsGoals[i] << "\t"
-                    <<cGetRobotData.m_vecRobotsError[i];
+                    << cGetRobotData.m_vecRobotsError[i];
          m_cOutFile << std::endl;
       }
    }
